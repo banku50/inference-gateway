@@ -1,0 +1,95 @@
+---
+services:
+  inference-gateway:
+    image: ghcr.io/inference-gateway/inference-gateway:latest
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        reservations:
+          memory: 100M
+          cpus: "0.1"
+    networks:
+      - app_network
+      - external_network
+
+  curl:
+    image: alpine/curl:latest
+    networks:
+      - app_network
+      - external_network
+
+  ollama:
+    image: ollama/ollama:latest
+    user: 65534:65534
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama serve"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:8080
+      OLLAMA_DEBUG: 1
+      HOME: /
+    volumes:
+      - type: volume
+        source: docker-compose-ollama-data
+        target: /.ollama
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          memory: 4G
+          cpus: "3"
+    depends_on:
+      ollama-model-downloader:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+
+  ollama-model-downloader:
+    image: ollama/ollama:latest
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      HOME: /
+      OLLAMA_HOST: 127.0.0.0:8080
+      OLLAMA_MAX_LOADED_MODELS: 0
+    command: >
+      "ollama serve & sleep 5 && ollama pull deepseek-r1:1.5b && chown -R 65534:65534 /.ollama"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    volumes:
+      - type: volume
+        source: docker-compose-ollama-data
+        target: /.ollama
+
+volumes:
+  docker-compose-llama-data:
+  docker-compose-ollama-data:
+
+networks:
+  app_network:
+    internal: true
+  external_network:
+    driver: bridge
+    internal: false

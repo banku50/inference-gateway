@@ -1,0 +1,71 @@
+---
+version: "3"
+
+tasks:
+  generate:
+    desc: "Generate the gateway from OpenAPI Spec"
+    cmds:
+      - go run cmd/generate/main.go -type ProvidersClientConfig -output providers/client.go
+      # TODO - migrate to an existing tool that generate the types from OpenAPI spec schemas
+      # - go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest --package=providers --generate types -o providers/common_types.go openapi.yaml
+      - go run cmd/generate/main.go -type ProvidersCommonTypes -output providers/common_types.go
+      # - go run cmd/generate/main.go -type Providers -output providers
+      - go run cmd/generate/main.go -type Config -output config/config.go
+      - go run cmd/generate/main.go -type MD -output Configurations.md
+      - go run cmd/generate/main.go -type HelmSecret -output charts/inference-gateway/templates/secrets-defaults.yaml
+      - go run cmd/generate/main.go -type HelmConfigMap -output charts/inference-gateway/templates/configmap-defaults.yaml
+      - go run cmd/generate/main.go -type HelmValues -output charts/inference-gateway/values.yaml
+      - go run cmd/generate/main.go -type Env -output examples/docker-compose/basic/.env.example
+      - go run cmd/generate/main.go -type Env -output examples/docker-compose/hybrid/.env.example
+      - go run cmd/generate/main.go -type Env -output examples/docker-compose/tools/.env.example
+      - go run cmd/generate/main.go -type Env -output examples/docker-compose/ui/.env.backend.example
+      - go run cmd/generate/main.go -type Env -output examples/docker-compose/authentication/.env.example
+      - go generate ./providers/... ./api/... ./otel/...
+
+  tidy:
+    desc: "Tidy the gateway"
+    cmds:
+      - go mod tidy
+
+  build:
+    desc: "Build the gateway"
+    cmds:
+      - go build -o bin/inference-gateway cmd/gateway/main.go
+
+  run:
+    desc: "Run the gateway"
+    cmds:
+      - go run cmd/gateway/main.go
+
+  lint:
+    desc: "Run Go static analysis and linting"
+    cmds:
+      - golangci-lint run
+
+  openapi-lint:
+    desc: "Lint OpenAPI spec"
+    cmds:
+      - spectral lint --verbose openapi.yaml
+
+  test:
+    desc: "Run tests"
+    cmds:
+      - go test -v ./...
+
+  benchmark:
+    desc: "Run benchmarks"
+    cmds:
+      - go test -bench=. -run=^$ -benchmem -benchtime=100x -count=20 ./tests/...
+
+  package:
+    desc: "Package the gateway"
+    cmds:
+      - docker build -t inference-gateway .
+
+  release-dry-run:
+    desc: "Run a dry-run of both semantic-release and goreleaser"
+    cmds:
+      - echo "Running semantic-release dry run..."
+      - semantic-release --dry-run
+      - echo "Running goreleaser dry run..."
+      - goreleaser release --config .goreleaser.yaml --clean --snapshot --verbose
